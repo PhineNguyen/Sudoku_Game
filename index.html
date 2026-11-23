@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sudoku AI Studio</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Top Header -->
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-icon" aria-hidden="true">
+          <span>9</span>
+        </div>
+        <div>
+          <h1 class="brand-title">Sudoku AI Studio</h1>
+          <p class="brand-sub" data-i18n="subtitle">Chế độ Người chơi &amp; AI tự động giải từng bước</p>
+        </div>
+      </div>
+
+      <div class="topbar-controls">
+        <div class="segmented-control" role="group" aria-label="Game Mode">
+          <button id="btnModePlayer" class="seg-btn active" data-mode="player" data-i18n="modePlayer">Người chơi</button>
+          <button id="btnModeAI" class="seg-btn" data-mode="ai" data-i18n="modeAI">AI Tự giải</button>
+        </div>
+
+        <button id="btnLang" class="icon-pill" title="Switch Language">
+          <span class="pill-badge">VI</span>
+          <span data-i18n="langLabel">Tiếng Việt</span>
+        </button>
+
+        <div class="audio-group">
+          <button id="btnSound" class="icon-btn active" aria-label="Toggle Sound" title="Âm thanh">
+            <svg id="iconSoundOn" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+              <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+              <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+            </svg>
+            <svg id="iconSoundOff" class="hidden" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+              <line x1="23" y1="9" x2="17" y2="15"></line>
+              <line x1="17" y1="9" x2="23" y2="15"></line>
+            </svg>
+          </button>
+          <input id="volumeSlider" type="range" min="0" max="100" value="70" aria-label="Volume" />
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="workspace">
+      <!-- Left: Board Column -->
+      <section class="board-column">
+        <div class="difficulty-bar">
+          <div class="difficulty-tabs" role="group" aria-label="Difficulty">
+            <button class="diff-btn" data-difficulty="easy" data-i18n="diffEasy">Dễ</button>
+            <button class="diff-btn active" data-difficulty="medium" data-i18n="diffMedium">Trung bình</button>
+            <button class="diff-btn" data-difficulty="hard" data-i18n="diffHard">Khó</button>
+          </div>
+          <button id="btnNewGame" class="btn-generate" data-i18n="newGame">✦ Tự sinh màn mới</button>
+        </div>
+
+        <div class="status-strip">
+          <div class="stat-card">
+            <span class="stat-label" data-i18n="cluesLabel">Ô cho sẵn</span>
+            <span id="clueCount" class="stat-value mono">33 / 81</span>
+          </div>
+
+          <div class="stat-card">
+            <span class="stat-label" data-i18n="mistakesLabel">Lỗi</span>
+            <span id="mistakeCount" class="stat-value">0 / 3</span>
+          </div>
+
+          <div class="stat-card">
+            <span class="stat-label" data-i18n="timerLabel">Thời gian</span>
+            <span id="timerDisplay" class="stat-value mono">00:00</span>
+          </div>
+        </div>
+
+        <div class="board-frame">
+          <div id="sudokuBoard" class="sudoku-board" role="grid" aria-label="Sudoku Grid"></div>
+          <canvas id="confettiCanvas" class="confetti-canvas hidden"></canvas>
+        </div>
+
+        <div id="bannerMessage" class="banner-message hidden" role="status" aria-live="polite"></div>
+      </section>
+
+      <!-- Right: Control Panel -->
+      <aside class="control-column">
+        <!-- PLAYER MODE PANEL -->
+        <div id="playerPanel" class="panel-card">
+          <div class="panel-header">
+            <h2 data-i18n="playerControlsTitle">Bảng điều khiển Người chơi</h2>
+            <span class="mode-tag player-tag" data-i18n="modePlayer">Người chơi</span>
+          </div>
+
+          <div class="action-grid">
+            <button id="btnUndo" class="action-btn" data-sound="undo">
+              <span class="action-icon">↶</span>
+              <span data-i18n="btnUndo">Hoàn tác</span>
+            </button>
+            <button id="btnErase" class="action-btn" data-sound="erase">
+              <span class="action-icon">⌫</span>
+              <span data-i18n="btnErase">Xóa</span>
+            </button>
+            <button id="btnNotes" class="action-btn" data-sound="notes">
+              <span class="action-icon">✎</span>
+              <span data-i18n="btnNotes">Ghi chú</span>
+              <span id="notesBadge" class="mini-badge">OFF</span>
+            </button>
+            <button id="btnHint" class="action-btn accent-hint" data-sound="hint">
+              <span class="action-icon">✦</span>
+              <span data-i18n="btnHint">Gợi ý AI</span>
+            </button>
+          </div>
+
+          <div class="numpad" id="numpad" aria-label="Number Pad">
+            <!-- Buttons 1..9 generated by JS -->
+          </div>
+
+          <div class="hint-box" id="playerHintBox">
+            <div class="hint-box-title" data-i18n="hintBoxTitle">Mẹo &amp; Hướng dẫn nhanh</div>
+            <p id="playerHintText" data-i18n="hintBoxDefault">
+              Chọn một ô trống và nhấn phím 1–9 để điền số. Nhấn N để bật/tắt ghi chú, hoặc nhấn "Gợi ý AI" để xem lời giải thích bước tiếp theo.
+            </p>
+          </div>
+
+          <div class="sound-legend">
+            <div class="legend-title" data-i18n="soundLegendTitle">Hiệu ứng âm thanh</div>
+            <p data-i18n="soundLegendDesc">Mỗi phím số (1–9) phát ra một nốt marimba riêng; nút Xóa, Ghi chú, Hoàn tác, Gợi ý và báo lỗi đều có âm sắc riêng biệt.</p>
+          </div>
+        </div>
+
+        <!-- AI SOLVER PANEL -->
+        <div id="aiPanel" class="panel-card hidden">
+          <div class="panel-header">
+            <h2 data-i18n="aiControlsTitle">AI Tự động giải từng bước</h2>
+            <span class="mode-tag ai-tag">AI Solver</span>
+          </div>
+
+          <div class="ai-metrics">
+            <div class="metric-pill">
+              <span class="metric-label" data-i18n="aiStepLabel">Bước</span>
+              <span id="aiStepCounter" class="metric-val mono">0 / 0</span>
+            </div>
+            <div class="metric-pill">
+              <span class="metric-label" data-i18n="aiStrategyLabel">Chiến lược</span>
+              <span id="aiStrategyName" class="metric-val">—</span>
+            </div>
+          </div>
+
+          <div class="ai-transport">
+            <button id="btnAiPlayPause" class="btn-ai-main">
+              <span id="aiPlayIcon">▶</span>
+              <span id="aiPlayText" data-i18n="aiStart">Bắt đầu giải</span>
+            </button>
+            <div class="ai-step-row">
+              <button id="btnAiPrev" class="action-btn" disabled>
+                <span class="action-icon">⏮</span>
+                <span data-i18n="aiPrev">Lùi 1 bước</span>
+              </button>
+              <button id="btnAiNext" class="action-btn">
+                <span class="action-icon">⏭</span>
+                <span data-i18n="aiNext">Tiến 1 bước</span>
+              </button>
+              <button id="btnAiReset" class="action-btn">
+                <span class="action-icon">↺</span>
+                <span data-i18n="aiReset">Đặt lại</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="speed-control">
+            <div class="speed-header">
+              <label for="aiSpeedSlider" data-i18n="aiSpeedLabel">Tốc độ giải</label>
+              <span id="aiSpeedValue" class="mono">320 ms</span>
+            </div>
+            <input id="aiSpeedSlider" type="range" min="30" max="1200" step="10" value="320" />
+            <div class="speed-labels">
+              <span data-i18n="speedFast">Nhanh</span>
+              <span data-i18n="speedSlow">Chậm</span>
+            </div>
+          </div>
+
+          <div class="ai-legend">
+            <span class="chip chip-logic" data-i18n="legendLogic">Suy luận logic</span>
+            <span class="chip chip-try" data-i18n="legendTry">Thử nghiệm (MRV)</span>
+            <span class="chip chip-backtrack" data-i18n="legendBacktrack">Quay lui</span>
+          </div>
+
+          <div class="ai-log-section">
+            <div class="ai-log-header" data-i18n="aiLogTitle">Nhật ký suy luận AI</div>
+            <div id="aiLogList" class="ai-log-list">
+              <div class="ai-log-empty" data-i18n="aiLogEmpty">
+                Nhấn "Bắt đầu giải" hoặc "Tiến 1 bước" để xem AI phân tích bảng Sudoku từng bước một.
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <script src="audio.js"></script>
+  <script src="solver.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
